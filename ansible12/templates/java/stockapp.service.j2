@@ -1,0 +1,12 @@
+[Unit]
+Description=Stock Market Application Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/java -jar /opt/stockapp/stock-service.jar
+WorkingDirectory=/opt/stockapp
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

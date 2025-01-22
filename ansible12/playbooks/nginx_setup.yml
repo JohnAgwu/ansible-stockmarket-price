@@ -1,0 +1,48 @@
+---
+- name: NGINX Playbook
+  hosts: nginx
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Manage Nginx on Amazon Linux
+      yum:
+        name: nginx
+        state: "{{ nginx_state }}"
+      when: ansible_facts ['distribution'] in ['Amazon','RedHat']
+
+    - name: Manage Nginx on Ubuntu Linux
+      apt:
+        name: nginx
+        state: "{{ nginx_state }}"
+        update_cache: yes
+      when: ansible_facts ['distribution'] in ['Ubuntu']
+
+    - name: Remove default site (Ubuntu)
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      when: ansible_facts['distribution'] in ['Ubuntu']
+
+    - name: Create NGINX reverse proxy config
+      template:
+        src: ../templates/nginx/reverse-proxy.conf.j2
+        dest: /etc/nginx/conf.d/reverse-proxy.conf
+      notify: Restart NGINX
+
+    - name: Test NGINX Configuration
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Start and Enable NGINX
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+      when: nginx_test is success
+
+  handlers:
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted

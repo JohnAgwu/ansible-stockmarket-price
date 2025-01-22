@@ -1,0 +1,72 @@
+---
+- name: Java Backend Setup
+  hosts: java
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Install Java 17 on Amazon Linux
+      yum:
+        name: java-17-amazon-corretto
+        state: present
+      when: ansible_facts['distribution'] in ['Amazon','RedHat']
+
+    - name: Install Java 17 on Ubuntu
+      apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+      when: ansible_facts['distribution'] in ['Ubuntu']
+
+    - name: Install Maven on Amazon Linux
+      yum:
+        name: maven
+        state: present
+      when: ansible_facts['distribution'] in ['Amazon','RedHat']
+
+    - name: Install Maven on Ubuntu
+      apt:
+        name: maven
+        state: present
+      when: ansible_facts['distribution'] in ['Ubuntu'] 
+
+    - name: Create app directory
+      file:
+        path: /opt/stockapp
+        state: directory
+        mode: '0755'
+
+    - name: Copy Spring Boot application jar
+      copy:
+        src: ../files/java/stock-service.jar
+        dest: /opt/stockapp/stock-service.jar
+        mode: '0755'
+
+    - name: Create systemd service file
+      template:
+        src: ../templates/java/stockapp.service.j2
+        dest: /etc/systemd/system/stockapp.service
+      notify: Reload systemd
+
+    - name: Create application.properties
+      template:
+        src: ../templates/java/application.properties.j2
+        dest: /opt/stockapp/application.properties
+      notify: Restart stockapp
+
+    - name: Start and enable stockapp service
+      systemd:
+        name: stockapp
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart stockapp
+      systemd:
+        name: stockapp
+        state: restarted

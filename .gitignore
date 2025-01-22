@@ -5,6 +5,7 @@
 *.tfstate.backup
 .terraform.lock.hcl
 *.config
+*.cfg
 target/
 *.jar
 *.war
